@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wearable Privacy Lab</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #6f6d67;
+    --grid: #e1e0d9;
+    --axis: #c3c2b7;
+    --ring: rgba(11,11,11,0.10);
+    --series-1: #2a78d6;   /* blue   - protected / main series */
+    --series-2: #eb6834;   /* orange - exposed / second series */
+    --track-1: #cde2fb;    /* lighter step of the same blue ramp */
+    --track-2: #fbe0d4;
+    --good: #0ca30c;
+    --warning: #fab219;
+    --critical: #d03b3b;
+    --good-ink: #006300;
+    --highlight: rgba(42,120,214,0.09);
+    --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --ink: #f0efec;
+      --ink-2: #c3c2b7;
+      --muted: #a09e96;
+      --grid: #2c2c2a;
+      --axis: #383835;
+      --ring: rgba(255,255,255,0.10);
+      --series-1: #3987e5;
+      --series-2: #d95926;
+      --track-1: #1c3556;
+      --track-2: #4a2a1c;
+      --good-ink: #0ca30c;
+      --highlight: rgba(57,135,229,0.14);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #f0efec;
+    --ink-2: #c3c2b7;
+    --muted: #a09e96;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --ring: rgba(255,255,255,0.10);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --track-1: #1c3556;
+    --track-2: #4a2a1c;
+    --good-ink: #0ca30c;
+    --highlight: rgba(57,135,229,0.14);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink);
+    font-family: var(--font); -webkit-font-smoothing: antialiased; line-height: 1.5;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px 80px; }
+  code { font-family: var(--mono); font-size: 0.92em; background: var(--grid); padding: 1px 6px; border-radius: 4px; }
+
+  /* ---------- header ---------- */
+  header.top { padding: 48px 0 28px; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 28px; }
+  .byline { font-size: 13px; color: var(--ink-2); }
+  .theme-btn {
+    font: inherit; font-size: 13px; color: var(--ink-2); background: var(--surface);
+    border: 1px solid var(--ring); border-radius: 8px; padding: 6px 12px; cursor: pointer;
+  }
+  .theme-btn:hover { color: var(--ink); }
+  h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.12; letter-spacing: -0.02em; margin: 0 0 14px; max-width: 18ch; font-weight: 650; }
+  .lede { font-size: 17px; color: var(--ink-2); max-width: 62ch; margin: 0 0 22px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { font-size: 13px; color: var(--ink-2); background: var(--surface); border: 1px solid var(--ring); border-radius: 20px; padding: 5px 12px; }
+
+  /* ---------- sections ---------- */
+  section { padding: 44px 0; border-top: 1px solid var(--grid); }
+  .eyebrow { font-size: 12.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--series-1); margin-bottom: 6px; }
+  h2 { font-size: 26px; letter-spacing: -0.01em; margin: 0 0 10px; font-weight: 650; }
+  .intro { color: var(--ink-2); max-width: 66ch; margin: 0 0 26px; }
+  .note { font-size: 13px; color: var(--muted); max-width: 70ch; margin: 14px 0 0; }
+
+  .panel { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 20px; }
+
+  /* ---------- stat tiles ---------- */
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .tile { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 16px 18px; }
+  .tile .label { font-size: 13px; color: var(--ink-2); margin-bottom: 4px; }
+  .tile .value { font-size: 28px; font-weight: 650; letter-spacing: -0.02em; }
+  .tile .sub { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+
+  /* ---------- horizontal bars (conditions) ---------- */
+  .bars { display: grid; gap: 10px; }
+  .bar-row { display: grid; grid-template-columns: 130px 1fr 110px; gap: 12px; align-items: center; font-size: 14px; }
+  .bar-row .name { color: var(--ink); }
+  .bar-track { height: 10px; background: var(--track-1); border-radius: 0 4px 4px 0; border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--series-1); border-radius: 4px; }
+  .bar-row .num { color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* ---------- tables ---------- */
+  .table-shell { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 10px 14px; white-space: nowrap; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
+  th { font-size: 12px; font-weight: 600; color: var(--ink-2); background: transparent; }
+  tr:last-child td { border-bottom: none; }
+  tr.hl td { background: var(--highlight); }
+  td.wrap-cell { white-space: normal; }
+  td.num, th.num { text-align: right; }
+
+  /* ---------- attack ---------- */
+  .duo { display: grid; grid-template-columns: 1fr auto 1fr; gap: 14px; align-items: stretch; margin-bottom: 26px; }
+  .arrow { align-self: center; font-size: 22px; color: var(--muted); }
+  .persona { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 18px 20px; }
+  .persona.bad { border-left: 4px solid var(--critical); }
+  .persona h3 { font-size: 13px; font-weight: 600; margin: 0 0 12px; color: var(--ink-2); }
+  .kv { display: flex; justify-content: space-between; gap: 16px; padding: 6px 0; border-bottom: 1px solid var(--grid); font-size: 14.5px; }
+  .kv:last-child { border-bottom: none; }
+  .kv span { color: var(--ink-2); }
+  .kv b { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .hero { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 18px; padding: 22px 24px; background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; }
+  .hero .big { font-size: 56px; font-weight: 650; letter-spacing: -0.03em; line-height: 1; color: var(--series-2); }
+  .hero .txt { font-size: 16px; color: var(--ink-2); max-width: 52ch; }
+  .hero .txt b { color: var(--ink); }
+
+  /* ---------- level selector + meters ---------- */
+  .seg { display: inline-flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+  .seg button {
+    font: inherit; font-size: 13.5px; color: var(--ink-2); background: var(--surface);
+    border: 1px solid var(--ring); border-radius: 8px; padding: 8px 14px; cursor: pointer;
+  }
+  .seg button:hover { color: var(--ink); }
+  .seg button.active { color: var(--ink); border-color: var(--series-1); box-shadow: inset 0 0 0 1px var(--series-1); font-weight: 600; }
+  .seg button:focus-visible, .theme-btn:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; }
+  .lvl-title { font-size: 18px; font-weight: 650; margin: 0 0 4px; }
+  .lvl-desc { color: var(--ink-2); margin: 0 0 18px; }
+  .meter { margin: 0 0 14px; }
+  .meter .m-head { display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 6px; }
+  .meter .m-head span { color: var(--ink-2); }
+  .meter .m-head b { font-variant-numeric: tabular-nums; }
+  .m-track { height: 10px; border-radius: 5px; overflow: hidden; }
+  .m-track.blue { background: var(--track-1); }
+  .m-track.orange { background: var(--track-2); }
+  .m-fill { height: 100%; border-radius: 5px; transition: width 0.5s ease; }
+  .m-fill.blue { background: var(--series-1); }
+  .m-fill.orange { background: var(--series-2); }
+  .person-view { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--grid); color: var(--ink-2); font-size: 14.5px; }
+  .person-view b { color: var(--ink); }
+
+  /* ---------- result lines + status ---------- */
+  .result { display: flex; gap: 10px; align-items: flex-start; padding: 13px 16px; border-radius: 10px; background: var(--surface); border: 1px solid var(--ring); font-size: 14.5px; margin-top: 12px; }
+  .result svg { flex-shrink: 0; width: 18px; height: 18px; margin-top: 2px; }
+  .result.good svg { color: var(--good); }
+  .result.warn svg { color: var(--warning); }
+  .result b { font-weight: 650; }
+
+  .status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ink); }
+  .status svg { width: 15px; height: 15px; }
+  .status.good svg { color: var(--good); }
+  .status.warning svg { color: var(--warning); }
+  .status.critical svg { color: var(--critical); }
+
+  /* ---------- scorecard ---------- */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+  .card { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 18px 20px; }
+  .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
+  .card h3 { margin: 0; font-size: 15.5px; font-weight: 650; }
+  .score-line { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-2); margin: 6px 0 8px; }
+  .score-line b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .flags { list-style: none; margin: 14px 0 0; padding: 12px 0 0; border-top: 1px solid var(--grid); font-size: 12.5px; color: var(--muted); }
+  .flags li { padding: 2px 0; }
+
+  .pass { color: var(--good-ink); }
+
+  /* ---------- notices ---------- */
+  .banner { display: none; background: var(--surface); border: 1px solid var(--critical); border-radius: 12px; padding: 18px 20px; margin: 10px 0 30px; }
+  .banner h2 { font-size: 18px; margin: 0 0 6px; }
+  footer { padding: 30px 0 0; border-top: 1px solid var(--grid); color: var(--muted); font-size: 13px; }
+
+  @media (max-width: 680px) {
+    .duo { grid-template-columns: 1fr; }
+    .arrow { transform: rotate(90deg); justify-self: center; }
+    .bar-row { grid-template-columns: 100px 1fr 90px; }
+    .hero .big { font-size: 44px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="topbar">
+      <div class="byline">Valluri Teja &middot; 23BCE0389 &middot; Data Privacy in Wearable Devices</div>
+      <button class="theme-btn" id="themeBtn" type="button">Switch theme</button>
+    </div>
+    <h1>How private is the data on your wrist, really?</h1>
+    <p class="lede">
+      This page is generated from a real analysis of a large synthetic wearable dataset. It measures how easily
+      "anonymous" records can be traced back to people, how much generalizing the data helps, and what
+      differential privacy costs in accuracy.
+    </p>
+    <div class="chips" id="chips"></div>
+  </header>
+
+  <div class="banner" id="missing">
+    <h2>No results found yet</h2>
+    <p style="margin:0">Run <code>python big_data_analysis.py</code> in this folder first. It creates <code>results.js</code>, which this page reads.</p>
+  </div>
+
+  <main id="app">
+
+    <section>
+      <div class="eyebrow">01 &middot; The data</div>
+      <h2>A large synthetic wearable dataset</h2>
+      <p class="intro">
+        Every record below was generated by code, not collected from real people. Names are already removed, the way
+        most "anonymized" datasets are released. What remains: age, gender, pincode, heart rate, steps, sleep and a health condition.
+      </p>
+      <div class="tiles" id="tiles"></div>
+      <div class="panel" style="margin-bottom:20px">
+        <div style="font-size:13px;color:var(--ink-2);margin-bottom:12px" id="condTitle"></div>
+        <div class="bars" id="condBars"></div>
+      </div>
+      <div class="table-shell"><table id="previewTable"></table></div>
+      <p class="note" id="dataNote"></p>
+    </section>
+
+    <section>
+      <div class="eyebrow">02 &middot; The attack</div>
+      <h2>No names, but still traceable</h2>
+      <p class="intro">
+        Suppose an attacker already knows three ordinary facts about someone (from social media, a gym profile, a
+        delivery address): their age, gender and pincode. They look those up in the dataset.
+      </p>
+      <div id="attack"></div>
+      <div class="hero" id="hero"></div>
+      <div class="result warn" id="homog"></div>
+    </section>
+
+    <section>
+      <div class="eyebrow">03 &middot; The defence</div>
+      <h2>Generalize, then suppress</h2>
+      <p class="intro">
+        k-anonymity means every person sits in a group of at least <b id="kTarget">5</b> people who look identical in the data
+        (themselves included). We blur age and pincode step by step. The more we blur, the safer people are, and the less detail
+        researchers keep. Pick a level to see it.
+      </p>
+      <div class="seg" id="seg" role="group" aria-label="Generalization level"></div>
+      <div class="panel" id="lvlPanel">
+        <div class="lvl-title" id="lvlTitle"></div>
+        <p class="lvl-desc" id="lvlDesc"></p>
+        <div class="tiles" id="lvlTiles"></div>
+        <div class="meter">
+          <div class="m-head"><span>Hidden in a crowd of 5 or more</span><b id="mProtVal"></b></div>
+          <div class="m-track blue"><div class="m-fill blue" id="mProt" style="width:0"></div></div>
+        </div>
+        <div class="meter">
+          <div class="m-head"><span>Uniquely identifiable (a group of exactly 1)</span><b id="mUniqVal"></b></div>
+          <div class="m-track orange"><div class="m-fill orange" id="mUniq" style="width:0"></div></div>
+        </div>
+        <div class="person-view" id="personView"></div>
+      </div>
+      <p class="note" style="margin:22px 0 10px">The same numbers for every level (the table version of the meters above):</p>
+      <div class="table-shell"><table id="levelTable"></table></div>
+      <div class="result good" id="recommended"></div>
+    </section>
+
+    <section>
+      <div class="eyebrow">04 &middot; Differential privacy</div>
+      <h2>Noise instead of blurring</h2>
+      <p class="intro">
+        Differential privacy adds calibrated random noise, controlled by a number called epsilon. Smaller epsilon means
+        more noise and stronger privacy. There are two ways to use it on heart-rate data, and the accuracy cost differs a lot.
+      </p>
+      <div class="table-shell"><table id="dpTable"></table></div>
+      <div class="result good" id="dpInsight"></div>
+      <p class="note" id="dpNote"></p>
+    </section>
+
+    <section>
+      <div class="eyebrow">05 &middot; Scorecard</div>
+      <h2>Device privacy scorecard</h2>
+      <p class="intro">
+        Each device is scored on eight criteria from the literature review: encryption at rest and in transit,
+        two-factor authentication, consent, retention disclosure, data deletion, BLE transparency, and third-party sharing.
+      </p>
+      <div class="cards" id="cards"></div>
+      <p class="note">
+        These five device profiles are illustrative inputs I chose to demonstrate the scoring model. They are not audited
+        against each company's current privacy policy. The point values are my own weighting, not taken from a published standard.
+      </p>
+    </section>
+
+    <section>
+      <div class="eyebrow">06 &middot; Verification</div>
+      <h2>Automated tests</h2>
+      <p class="intro">
+        The Python code is checked by automated unit tests (Python's <code>unittest</code>). Each one verifies a single behaviour,
+        so a mistake in the scoring, k-anonymity or noise code would show up as a failure.
+      </p>
+      <div class="table-shell"><table id="testTable"></table></div>
+      <div class="result good" id="testSummary"></div>
+      <p class="note">These results were recorded by Python when it ran the analysis; the tests run in Python, not in the browser.</p>
+    </section>
+
+  </main>
+
+  <footer>
+    All data on this page is synthetic. Numbers come from <code>results.js</code>, written by <code>big_data_analysis.py</code>
+    (fixed random seed, so a re-run reproduces the same figures).
+  </footer>
+</div>
+
+<script src="results.js"></script>
+<script>
+const R = window.RESULTS;
+const $ = id => document.getElementById(id);
+const fmt = n => Number(n).toLocaleString('en-IN');
+
+const ICON = {
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  warn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>',
+  alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>',
+};
+
+/* ---------- theme toggle ---------- */
+$('themeBtn').addEventListener('click', () => {
+  const root = document.documentElement;
+  const current = root.getAttribute('data-theme') ||
+    (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  root.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+});
+
+if (!R) {
+  $('missing').style.display = 'block';
+  $('app').style.display = 'none';
+} else {
+  render();
+}
+
+function tile(label, value, sub) {
+  return `<div class="tile"><div class="label">${label}</div><div class="value">${value}</div>${sub ? `<div class="sub">${sub}</div>` : ''}</div>`;
+}
+
+function statusFor(label) {
+  if (/^Low/.test(label)) return { cls: 'good', icon: ICON.check };
+  if (/^Medium/.test(label)) return { cls: 'warning', icon: ICON.warn };
+  return { cls: 'critical', icon: ICON.alert };
+}
+
+function render() {
+  const M = R.meta, S = R.summary, rec = R.recommended;
+
+  /* hero chips */
+  $('chips').innerHTML = [
+    `${fmt(M.users)} synthetic users`,
+    `${M.fields} fields per user`,
+    `${R.levels.length} generalization levels`,
+    `${R.tests.total} automated tests`,
+  ].map(t => `<span class="chip">${t}</span>`).join('');
+
+  /* 01 data */
+  $('tiles').innerHTML =
+    tile('Users', fmt(M.users), 'synthetic records') +
+    tile('Average age', S.age_mean, 'years') +
+    tile('Average heart rate', S.hr_mean, 'beats per minute') +
+    tile('With a health condition', S.pct_with_condition + '%', 'recorded in the data');
+
+  const condEntries = Object.entries(S.conditions);
+  const maxCond = Math.max(...condEntries.map(e => e[1]));
+  $('condTitle').textContent = 'Recorded health conditions (number of users)';
+  $('condBars').innerHTML = condEntries.map(([name, count]) =>
+    `<div class="bar-row" title="${name}: ${fmt(count)} users">
+       <div class="name">${name}</div>
+       <div class="bar-track"><div class="bar-fill" style="width:${(count / maxCond * 100).toFixed(1)}%"></div></div>
+       <div class="num">${fmt(count)} (${(count / M.users * 100).toFixed(1)}%)</div>
+     </div>`).join('');
+
+  const cols = ['user_id', 'age', 'gender', 'zip_code', 'avg_hr', 'daily_steps', 'sleep_hours', 'condition'];
+  $('previewTable').innerHTML =
+    '<tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr>' +
+    S.preview.map(u => '<tr>' + cols.map(c => `<td>${u[c]}</td>`).join('') + '</tr>').join('');
+  $('dataNote').textContent = `First 8 of ${fmt(M.users)} rows. The full dataset is in wearable_users.csv (generated with seed ${M.seed}).`;
+
+  /* 02 attack */
+  const L0 = R.levels[0];
+  const ex = R.example;
+  if (ex) {
+    const k = ex.known, r = ex.revealed;
+    $('attack').innerHTML = `
+      <div class="duo">
+        <div class="persona">
+          <h3>What the attacker already knows</h3>
+          <div class="kv"><span>Age</span><b>${k.age}</b></div>
+          <div class="kv"><span>Gender</span><b>${k.gender}</b></div>
+          <div class="kv"><span>Pincode</span><b>${k.zip_code}</b></div>
+        </div>
+        <div class="arrow" aria-hidden="true">&rarr;</div>
+        <div class="persona bad">
+          <h3>What the "anonymous" dataset gives back</h3>
+          <div class="kv"><span>Matching rows</span><b>${ex.raw_matches}</b></div>
+          <div class="kv"><span>Health condition</span><b>${r.condition}</b></div>
+          <div class="kv"><span>Average heart rate</span><b>${r.avg_hr} bpm</b></div>
+          <div class="kv"><span>Daily steps</span><b>${fmt(r.daily_steps)}</b></div>
+        </div>
+      </div>`;
+  }
+  $('hero').innerHTML = `
+    <div class="big">${L0.pct_suppressed}%</div>
+    <div class="txt">of the <b>${fmt(M.users)}</b> users can be narrowed down to a group of <b>fewer than ${M.k_target} people</b> using only their
+      age, gender and pincode, and <b>${L0.pct_unique}%</b> (${fmt(Math.round(L0.pct_unique / 100 * M.users))} people) are unique, so one lookup finds exactly them.</div>`;
+  $('homog').innerHTML = `${ICON.warn}<span>Even inside groups of ${M.k_target} or more, <b>${L0.pct_attribute_exposed}%</b> of people sit in a group where
+    everyone has the same health condition. An attacker then learns it without pinpointing anyone. k-anonymity alone is not the whole answer.</span>`;
+
+  /* 03 defence */
+  $('kTarget').textContent = M.k_target;
+  $('seg').innerHTML = R.levels.map(l => `<button type="button" data-i="${l.level}">Level ${l.level}</button>`).join('');
+  $('seg').addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (btn) showLevel(Number(btn.dataset.i));
+  });
+
+  $('levelTable').innerHTML =
+    '<tr><th>Level</th><th>What is blurred</th><th class="num">Groups</th><th class="num">Unique</th>' +
+    `<th class="num">In a group of ${M.k_target}+</th><th class="num">Suppressed</th><th class="num">Avg group size</th></tr>` +
+    R.levels.map(l => `<tr class="${l.level === rec.level ? 'hl' : ''}">
+      <td>${l.level}</td><td class="wrap-cell">${l.description}</td>
+      <td class="num">${fmt(l.groups)}</td><td class="num">${l.pct_unique}%</td>
+      <td class="num">${l.pct_protected}%</td><td class="num">${l.pct_suppressed}%</td>
+      <td class="num">${fmt(l.avg_group_size)}</td></tr>`).join('');
+
+  $('recommended').innerHTML = `${ICON.check}<span>Recommended: <b>Level ${rec.level} (${rec.name})</b>. It suppresses only
+    <b>${fmt(rec.records_suppressed)}</b> records (${rec.pct_suppressed}%), keeps <b>${fmt(rec.records_kept)}</b>, and every remaining person
+    is hidden in a group of at least <b>${rec.final_min_k}</b>. Level ${rec.level} was chosen as the lightest blurring that needs to suppress
+    at most ${M.max_suppression_pct}% of users.</span>`;
+
+  showLevel(rec.level);
+
+  /* 04 differential privacy */
+  const dp = R.dp;
+  $('dpTable').innerHTML =
+    '<tr><th class="num">Epsilon</th><th>Privacy</th>' +
+    '<th class="num">Error: release only the average</th><th class="num">Error: noise on every person</th><th class="num">Average of noisy values, error</th></tr>' +
+    dp.rows.map(r => `<tr><td class="num">${r.epsilon}</td>
+      <td>${r.epsilon <= 0.5 ? 'Strong' : r.epsilon <= 2 ? 'Balanced' : 'Weak'}</td>
+      <td class="num">${r.central_mean_error} bpm</td><td class="num">${r.local_record_error} bpm</td>
+      <td class="num">${r.local_mean_error} bpm</td></tr>`).join('');
+  const r1 = dp.rows.find(r => r.epsilon === 1.0) || dp.rows[2];
+  $('dpInsight').innerHTML = `${ICON.check}<span>At epsilon ${r1.epsilon}, releasing just the average of ${fmt(dp.n)} people is off by only
+    <b>${r1.central_mean_error} bpm</b>. Adding noise to every person's own reading changes each value by about <b>${r1.local_record_error} bpm</b>,
+    far too much to use individually, yet averaging all the noisy values still lands within <b>${r1.local_mean_error} bpm</b>. More people means less noise is needed.</span>`;
+  $('dpNote').textContent = `True average heart rate: ${dp.true_mean} bpm. Readings were limited to ${dp.range[0]}-${dp.range[1]} bpm. ` +
+    `Errors are averages over repeated releases (fixed seed). Same idea as Saifuzzaman et al. (2021) and Benouis et al. (2024).`;
+
+  /* 05 scorecard */
+  $('cards').innerHTML = R.scorecard.map(d => {
+    const st = statusFor(d.risk_label);
+    return `<div class="card">
+      <div class="card-head"><h3>${d.device_name}</h3><span class="status ${st.cls}">${st.icon}${d.risk_label}</span></div>
+      <div class="score-line"><span>Privacy score</span><b>${d.pct}%</b></div>
+      <div class="m-track blue"><div class="m-fill blue" style="width:${d.pct}%"></div></div>
+      <ul class="flags">${d.flags.map(f => `<li>${f}</li>`).join('') || '<li>No flags: meets every criterion</li>'}</ul>
+    </div>`;
+  }).join('');
+
+  /* 06 tests */
+  const T = R.tests;
+  $('testTable').innerHTML =
+    '<tr><th>File</th><th>Group</th><th>What it checks</th><th>Result</th></tr>' +
+    T.tests.map(t => `<tr><td>${t.file}</td><td>${t.suite}</td><td class="wrap-cell">${t.description}</td>
+      <td><span class="status ${t.status === 'PASS' ? 'good' : 'critical'}">${t.status === 'PASS' ? ICON.check : ICON.alert}${t.status === 'PASS' ? 'Pass' : 'Fail'}</span></td></tr>`).join('');
+  $('testSummary').innerHTML = `${T.failed === 0 ? ICON.check : ICON.alert}<span>Ran <b>${T.total} tests</b> in ${T.seconds}s:
+    <b>${T.passed} passed, ${T.failed} failed</b>.</span>`;
+}
+
+function showLevel(i) {
+  const l = R.levels[i], M = R.meta, ex = R.example;
+  document.querySelectorAll('#seg button').forEach(b => b.classList.toggle('active', Number(b.dataset.i) === i));
+  $('lvlTitle').textContent = `Level ${l.level}: ${l.name}`;
+  $('lvlDesc').textContent = l.description;
+  $('lvlTiles').innerHTML =
+    tile('Distinct groups', fmt(l.groups)) +
+    tile('Average group size', fmt(l.avg_group_size), 'people per group') +
+    tile('Suppressed for k=' + M.k_target, l.pct_suppressed + '%', 'records dropped') +
+    tile('Same condition in group', l.pct_attribute_exposed + '%', 'of protected users');
+  $('mProt').style.width = l.pct_protected + '%';
+  $('mProtVal').textContent = l.pct_protected + '%';
+  $('mUniq').style.width = Math.max(l.pct_unique, l.pct_unique > 0 ? 0.6 : 0) + '%';
+  $('mUniqVal').textContent = l.pct_unique + '%';
+  if (ex) {
+    const v = ex.by_level[i];
+    $('personView').innerHTML = `The person from the attack example now appears as
+      <b>age ${v.age_group}</b>, <b>pincode ${v.zip_region}</b>, <b>${ex.known.gender}</b>, which matches
+      <b>${fmt(v.group_size)}</b> ${v.group_size === 1 ? 'person' : 'people'}.`;
+  } else {
+    $('personView').textContent = '';
+  }
+}
+</script>
+</body>
+</html>

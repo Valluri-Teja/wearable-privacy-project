@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Real Wearable Data</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #6f6d67;
+    --grid: #e1e0d9;
+    --ring: rgba(11,11,11,0.10);
+    --series-1: #2a78d6;
+    --series-2: #eb6834;
+    --track-1: #cde2fb;
+    --track-2: #fbe0d4;
+    --good: #0ca30c;
+    --warning: #fab219;
+    --critical: #d03b3b;
+    --highlight: rgba(42,120,214,0.09);
+    --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #a09e96;
+      --grid: #2c2c2a; --ring: rgba(255,255,255,0.10);
+      --series-1: #3987e5; --series-2: #d95926; --track-1: #1c3556; --track-2: #4a2a1c;
+      --highlight: rgba(57,135,229,0.14);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #a09e96;
+    --grid: #2c2c2a; --ring: rgba(255,255,255,0.10);
+    --series-1: #3987e5; --series-2: #d95926; --track-1: #1c3556; --track-2: #4a2a1c;
+    --highlight: rgba(57,135,229,0.14);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink); font-family: var(--font); -webkit-font-smoothing: antialiased; line-height: 1.5; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px 80px; }
+  code { font-family: var(--mono); font-size: 0.92em; background: var(--grid); padding: 1px 6px; border-radius: 4px; }
+  a { color: var(--series-1); }
+
+  header.top { padding: 48px 0 28px; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 28px; }
+  .byline { font-size: 13px; color: var(--ink-2); }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn { font: inherit; font-size: 13px; color: var(--ink-2); background: var(--surface); border: 1px solid var(--ring); border-radius: 8px; padding: 6px 12px; cursor: pointer; text-decoration: none; }
+  .btn:hover { color: var(--ink); }
+  .btn:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; }
+  h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.12; letter-spacing: -0.02em; margin: 0 0 14px; max-width: 20ch; font-weight: 650; }
+  .lede { font-size: 17px; color: var(--ink-2); max-width: 62ch; margin: 0 0 22px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { font-size: 13px; color: var(--ink-2); background: var(--surface); border: 1px solid var(--ring); border-radius: 20px; padding: 5px 12px; }
+
+  section { padding: 44px 0; border-top: 1px solid var(--grid); }
+  .eyebrow { font-size: 12.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--series-1); margin-bottom: 6px; }
+  h2 { font-size: 26px; letter-spacing: -0.01em; margin: 0 0 10px; font-weight: 650; }
+  .intro { color: var(--ink-2); max-width: 66ch; margin: 0 0 26px; }
+  .note { font-size: 13px; color: var(--muted); max-width: 70ch; margin: 14px 0 0; }
+  .panel { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 20px; }
+  .panel p { margin: 0 0 8px; }
+  .panel p:last-child { margin-bottom: 0; }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .tile { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 16px 18px; }
+  .tile .label { font-size: 13px; color: var(--ink-2); margin-bottom: 4px; }
+  .tile .value { font-size: 28px; font-weight: 650; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .tile .sub { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+
+  .bars { display: grid; gap: 8px; }
+  .bar-row { display: grid; grid-template-columns: 80px 1fr 60px; gap: 12px; align-items: center; font-size: 14px; }
+  .bar-track { height: 10px; background: var(--track-1); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--series-1); border-radius: 4px; }
+  .bar-row .num { color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; }
+
+  .table-shell { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; overflow-x: auto; margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 10px 14px; white-space: nowrap; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
+  th { font-size: 12px; font-weight: 600; color: var(--ink-2); }
+  tr:last-child td { border-bottom: none; }
+  tr.hl td { background: var(--highlight); }
+  td.num, th.num { text-align: right; }
+
+  .hero { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 18px; padding: 22px 24px; background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; margin-bottom: 18px; }
+  .hero .big { font-size: 56px; font-weight: 650; letter-spacing: -0.03em; line-height: 1; color: var(--series-2); }
+  .hero .txt { font-size: 16px; color: var(--ink-2); max-width: 54ch; }
+  .hero .txt b { color: var(--ink); }
+  .meter { margin: 0 0 14px; }
+  .meter .m-head { display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 6px; }
+  .meter .m-head span { color: var(--ink-2); }
+  .meter .m-head b { font-variant-numeric: tabular-nums; }
+  .m-track { height: 10px; border-radius: 5px; overflow: hidden; }
+  .m-track.blue { background: var(--track-1); }
+  .m-track.orange { background: var(--track-2); }
+  .m-fill { height: 100%; border-radius: 5px; }
+  .m-fill.blue { background: var(--series-1); }
+  .m-fill.orange { background: var(--series-2); }
+
+  .result { display: flex; gap: 10px; align-items: flex-start; padding: 13px 16px; border-radius: 10px; background: var(--surface); border: 1px solid var(--ring); font-size: 14.5px; margin-top: 12px; }
+  .result svg { flex-shrink: 0; width: 18px; height: 18px; margin-top: 2px; }
+  .result.good svg { color: var(--good); }
+  .result.warn svg { color: var(--warning); }
+
+  .limits { margin: 0; padding-left: 20px; color: var(--ink-2); max-width: 70ch; }
+  .limits li { margin-bottom: 8px; }
+  .limits b { color: var(--ink); }
+
+  .banner { display: none; background: var(--surface); border: 1px solid var(--critical); border-radius: 12px; padding: 18px 20px; margin: 10px 0 30px; }
+  .banner h2 { font-size: 18px; margin: 0 0 6px; }
+  footer { padding: 30px 0 0; border-top: 1px solid var(--grid); color: var(--muted); font-size: 13px; }
+  @media (max-width: 680px) { .hero .big { font-size: 44px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="topbar">
+      <div class="byline">Valluri Teja &middot; 23BCE0389 &middot; Data Privacy in Wearable Devices</div>
+      <div class="actions">
+        <a class="btn" href="wearable_dashboard.html">Back to the main dashboard</a>
+        <button class="btn" id="themeBtn" type="button">Switch theme</button>
+      </div>
+    </div>
+    <h1>The same ideas, on real heart-rate data</h1>
+    <p class="lede">
+      The main dashboard used synthetic users. This page repeats the privacy tests on a public dataset of real Fitbit
+      heart-rate readings: how much accuracy differential privacy costs, and whether "anonymous" people can still be found again.
+    </p>
+    <div class="chips" id="chips"></div>
+  </header>
+
+  <div class="banner" id="missing">
+    <h2>No real-data results yet</h2>
+    <p style="margin:0">Run <code>python real_data_analysis.py</code> in this folder first. It creates <code>real_results.js</code>, which this page reads.</p>
+  </div>
+
+  <main id="app">
+
+    <section>
+      <div class="eyebrow">01 &middot; The source</div>
+      <h2>A public dataset of real Fitbit users</h2>
+      <p class="intro">
+        The data comes from volunteers who agreed to share their Fitbit tracker data for research. It is published openly, so it can be used
+        here as long as the authors are credited.
+      </p>
+      <div class="panel" id="source"></div>
+    </section>
+
+    <section>
+      <div class="eyebrow">02 &middot; The data</div>
+      <h2>Millions of real heart-rate readings</h2>
+      <p class="intro">
+        Each reading is a person's heart rate, recorded every few seconds. Only an anonymous number identifies the person: no name, age or location.
+      </p>
+      <div class="tiles" id="tiles"></div>
+      <div class="table-shell"><table id="periodTable"></table></div>
+      <div class="panel">
+        <div style="font-size:13px;color:var(--ink-2);margin-bottom:12px">Average heart rate per person (number of people in each range, beats per minute)</div>
+        <div class="bars" id="hist"></div>
+      </div>
+      <p class="note" id="dataNote"></p>
+    </section>
+
+    <section>
+      <div class="eyebrow">03 &middot; The attack</div>
+      <h2>Can a heart-rate pattern identify someone?</h2>
+      <p class="intro">
+        An attacker holds records from the first period and from the second period. For each person in the first, they look for the second-period record
+        with the most similar heart-rate pattern across the 24 hours of a day, without using the anonymous number. Then we check whether they found the right person.
+      </p>
+      <div id="attackBox"></div>
+    </section>
+
+    <section>
+      <div class="eyebrow">04 &middot; Differential privacy</div>
+      <h2>What noise costs on real data</h2>
+      <p class="intro">
+        We release the average heart rate with random noise added (Laplace noise, controlled by epsilon). There are two levels of promise:
+        hiding one single reading, or hiding one whole person. They give very different accuracy.
+      </p>
+      <div class="table-shell"><table id="dpTable"></table></div>
+      <div class="result good" id="dpInsight"></div>
+      <p class="note" id="dpNote"></p>
+    </section>
+
+    <section>
+      <div class="eyebrow">05 &middot; Limits</div>
+      <h2>What these results do and don't show</h2>
+      <ul class="limits" id="limits"></ul>
+    </section>
+
+  </main>
+
+  <footer id="foot"></footer>
+</div>
+
+<script src="real_results.js"></script>
+<script>
+const R = window.REAL;
+const $ = id => document.getElementById(id);
+const fmt = n => Number(n).toLocaleString('en-IN');
+const ICON = {
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  warn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>',
+};
+
+$('themeBtn').addEventListener('click', () => {
+  const root = document.documentElement;
+  const current = root.getAttribute('data-theme') ||
+    (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  root.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+});
+
+if (!R) {
+  $('missing').style.display = 'block';
+  $('app').style.display = 'none';
+} else {
+  render();
+}
+
+function tile(label, value, sub) {
+  return `<div class="tile"><div class="label">${label}</div><div class="value">${value}</div>${sub ? `<div class="sub">${sub}</div>` : ''}</div>`;
+}
+function tinyError(v) { return v < 0.001 ? 'under 0.001' : v; }
+
+function render() {
+  const S = R.summary, D = R.dp, A = R.attack, src = R.source;
+
+  $('chips').innerHTML = [
+    `${fmt(S.readings)} real readings`,
+    `${S.people} people`,
+    `${S.files} data files`,
+    'CC BY 4.0 licence',
+  ].map(t => `<span class="chip">${t}</span>`).join('');
+
+  /* 01 source */
+  $('source').innerHTML = `
+    <p><b>${src.title}</b></p>
+    <p>${src.authors}. Published on ${src.publisher}. <a href="${src.doi}" target="_blank" rel="noopener">${src.doi}</a></p>
+    <p style="color:var(--ink-2)">Licence: ${src.license}.</p>`;
+
+  /* 02 data */
+  $('tiles').innerHTML =
+    tile('Heart-rate readings', fmt(S.readings), 'every few seconds') +
+    tile('People', S.people, 'anonymous numbers only') +
+    tile('Average heart rate', S.mean_hr, 'beats per minute') +
+    tile('Readings per person', fmt(S.readings_per_person), 'on average');
+
+  $('periodTable').innerHTML =
+    '<tr><th>Data file (folder)</th><th>From</th><th>To</th><th class="num">Readings</th><th class="num">People</th></tr>' +
+    S.periods.map(p => `<tr><td>${p.label}</td><td>${p.first}</td><td>${p.last}</td>
+      <td class="num">${fmt(p.rows)}</td><td class="num">${p.people}</td></tr>`).join('');
+
+  const maxCount = Math.max(...S.hist.map(b => b.count), 1);
+  $('hist').innerHTML = S.hist.map(b =>
+    `<div class="bar-row" title="${b.label} bpm: ${b.count} people">
+       <div>${b.label}</div>
+       <div class="bar-track"><div class="bar-fill" style="width:${(b.count / maxCount * 100).toFixed(1)}%"></div></div>
+       <div class="num">${b.count}</div>
+     </div>`).join('');
+  $('dataNote').textContent =
+    `Only people with at least 500 readings are used for the privacy tests (${S.people_used} of ${S.people}). ` +
+    `${S.bad_rows} unreadable rows were skipped. ${S.pct_clamped}% of readings fell outside ${D.bounds[0]}-${D.bounds[1]} bpm and were clamped for the noise test.`;
+
+  /* 03 attack */
+  if (A) {
+    const strong = A.pct_correct >= 2 * A.pct_chance && A.pct_correct >= 30;
+    $('attackBox').innerHTML = `
+      <div class="hero">
+        <div class="big">${A.pct_correct}%</div>
+        <div class="txt"><b>${A.correct} of ${A.people_attacked}</b> people were found again in the second period using only their heart-rate pattern.
+          Random guessing among ${A.candidates} people would get about <b>${A.pct_chance}%</b>.</div>
+      </div>
+      <div class="panel">
+        <div class="meter">
+          <div class="m-head"><span>Attack: correct person ranked first</span><b>${A.pct_correct}%</b></div>
+          <div class="m-track orange"><div class="m-fill orange" style="width:${A.pct_correct}%"></div></div>
+        </div>
+        <div class="meter">
+          <div class="m-head"><span>Random guessing</span><b>${A.pct_chance}%</b></div>
+          <div class="m-track blue"><div class="m-fill blue" style="width:${Math.max(A.pct_chance, 0.6)}%"></div></div>
+        </div>
+        <div class="meter" style="margin-bottom:0">
+          <div class="m-head"><span>Attack: correct person among the 3 closest matches</span><b>${A.pct_top3}% (chance ${A.pct_chance_top3}%)</b></div>
+          <div class="m-track orange"><div class="m-fill orange" style="width:${A.pct_top3}%"></div></div>
+        </div>
+      </div>
+      <div class="result ${strong ? 'warn' : 'good'}">${strong ? ICON.warn : ICON.check}<span>${strong
+        ? 'A heart-rate pattern works like a fingerprint here: it finds people far more often than chance, even though names were never in the data. Removing the Id is not enough.'
+        : 'The pattern identified people only a little better than chance in this run. That is a result, not a failure: how identifiable heart-rate data is depends on how many people there are and how long they were recorded.'}</span></div>
+      <p class="note">First period: ${A.period_1}. Second period: ${A.period_2}. Each person's profile is their average heart rate for each hour of the day.
+        This is a simple matching method; a smarter attacker could do better.</p>`;
+  } else {
+    $('attackBox').innerHTML = `<div class="result warn">${ICON.warn}<span>The attack needs two data files that share people. It could not run on the files found, so it was skipped.</span></div>`;
+  }
+
+  /* 04 differential privacy */
+  $('dpTable').innerHTML =
+    '<tr><th class="num">Epsilon</th><th>Privacy</th><th class="num">Error: hiding one whole person</th><th class="num">Error: hiding one reading</th></tr>' +
+    D.rows.map(r => `<tr class="${r.epsilon === 1 ? 'hl' : ''}"><td class="num">${r.epsilon}</td>
+      <td>${r.epsilon <= 0.5 ? 'Strong' : r.epsilon <= 2 ? 'Balanced' : 'Weak'}</td>
+      <td class="num">${r.person_level_error} bpm</td><td class="num">${tinyError(r.reading_level_error)} bpm</td></tr>`).join('');
+  const r1 = D.rows.find(r => r.epsilon === 1) || D.rows[2];
+  $('dpInsight').innerHTML = `${ICON.check}<span>At epsilon ${r1.epsilon}, hiding one <b>whole person</b> makes the average of ${D.people_used} people off by about
+    <b>${r1.person_level_error} bpm</b>. Hiding only <b>one reading</b> costs almost nothing (${tinyError(r1.reading_level_error)} bpm), but that promise is weak:
+    each person contributes about ${fmt(S.readings_per_person)} readings, so their overall pattern is not protected.
+    With 10,000 people and the same settings, the person-level error would drop to about ${D.error_10000_people_eps1} bpm.</span>`;
+  $('dpNote').textContent = `True average heart rate: ${D.true_mean_people} bpm (average of per-person averages). Readings were limited to ${D.bounds[0]}-${D.bounds[1]} bpm. ` +
+    `Errors are averages over 500 repeated releases (fixed seed). Noise needed is roughly the range divided by (number of people x epsilon), so a small group needs far more noise.`;
+
+  /* 05 limits */
+  $('limits').innerHTML = [
+    `<b>Small group.</b> ${S.people} volunteers is not a representative sample, so these figures describe this dataset, not wearable users in general.`,
+    '<b>Simple attack.</b> The matching method is basic. Results show what is possible with little effort, not the best an attacker could do.',
+    '<b>Known Ids.</b> The same anonymous number appears in both periods, which lets us check the attack was right. A real attacker would not have that.',
+    '<b>Missing details.</b> This dataset has no age, gender or location, so the k-anonymity tests could not be run on it. That part uses the synthetic dataset on the main dashboard.',
+  ].map(t => `<li>${t}</li>`).join('');
+
+  $('foot').innerHTML = `Data: ${src.authors}. ${src.title}. ${src.publisher}. <a href="${src.doi}" target="_blank" rel="noopener">${src.doi}</a>, licensed under CC BY 4.0.
+    Numbers come from <code>real_results.js</code>, written by <code>real_data_analysis.py</code>.`;
+}
+</script>
+</body>
+</html>

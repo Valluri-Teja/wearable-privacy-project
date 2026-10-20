@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wearable Privacy Risk Scorecard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;1,500&family=Manrope:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d141f;
+    --panel: #151f2e;
+    --panel-2: #1b2839;
+    --border: #263a53;
+    --border-soft: #1f2e42;
+    --text: #eaf0f7;
+    --muted: #8fa1b8;
+    --accent: #5eead4;
+    --low: #34d399;
+    --med: #fbbf24;
+    --high: #f87171;
+    --serif: 'Fraunces', serif;
+    --sans: 'Manrope', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { min-height: 100vh; overflow-x: hidden; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 24px; position: relative; }
+
+  header.top { padding: 72px 0 12px; position: relative; }
+  header.top::before {
+    content: '';
+    position: absolute;
+    top: -140px; left: -220px;
+    width: 520px; height: 520px;
+    background: radial-gradient(circle, rgba(94,234,212,0.16) 0%, rgba(94,234,212,0) 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .byline {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 12.5px; color: var(--muted);
+    letter-spacing: 0.02em; margin-bottom: 26px;
+    padding: 6px 12px 6px 8px;
+    background: var(--panel);
+    border: 1px solid var(--border-soft);
+    border-radius: 20px;
+    position: relative; z-index: 1;
+  }
+  .byline .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+  h1 {
+    font-family: var(--serif); font-weight: 600;
+    font-size: clamp(32px, 5vw, 50px); line-height: 1.1;
+    margin: 0 0 18px; max-width: 15ch;
+    position: relative; z-index: 1;
+  }
+  .lede {
+    font-size: 17px; line-height: 1.65; color: var(--muted);
+    max-width: 60ch; margin: 0 0 38px;
+    position: relative; z-index: 1;
+  }
+  .lede strong { color: var(--text); font-weight: 600; }
+
+  section {
+    padding: 60px 0;
+    border-top: 1px solid var(--border-soft);
+    opacity: 0; transform: translateY(18px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  section.in-view { opacity: 1; transform: translateY(0); }
+  section:first-of-type { border-top: none; }
+
+  .section-num { font-family: var(--mono); font-size: 13px; color: var(--accent); letter-spacing: 0.05em; margin-bottom: 10px; }
+  h2 { font-family: var(--serif); font-style: italic; font-weight: 500; font-size: 27px; margin: 0 0 12px; }
+  .section-intro { color: var(--muted); font-size: 15px; line-height: 1.7; max-width: 62ch; margin: 0 0 34px; }
+
+  /* Scorecard */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border-soft);
+    border-radius: 14px; padding: 24px;
+    position: relative; overflow: hidden;
+    transition: border-color 0.25s ease, transform 0.25s ease;
+  }
+  .card:hover { border-color: var(--border); transform: translateY(-2px); }
+  .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .card.low::before  { background: var(--low); }
+  .card.med::before  { background: var(--med); }
+  .card.high::before { background: var(--high); }
+
+  .card-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; gap: 10px; }
+  .device-name { font-weight: 700; font-size: 15.5px; display: flex; align-items: center; gap: 9px; }
+  .device-icon { width: 17px; height: 17px; flex-shrink: 0; opacity: 0.85; }
+  .badge { font-family: var(--mono); font-size: 11.5px; padding: 4px 10px; border-radius: 20px; white-space: nowrap; font-weight: 500; }
+  .badge.low  { background: rgba(52,211,153,0.14);  color: var(--low); }
+  .badge.med  { background: rgba(251,191,36,0.14);  color: var(--med); }
+  .badge.high { background: rgba(248,113,113,0.14); color: var(--high); }
+
+  .bar-track { height: 8px; background: var(--panel-2); border-radius: 5px; overflow: hidden; margin-bottom: 10px; }
+  .bar-fill { height: 100%; border-radius: 5px; width: 0%; transition: width 1.2s cubic-bezier(.22,.9,.3,1); }
+  .bar-fill.low  { background: linear-gradient(90deg, #2bb989, var(--low)); }
+  .bar-fill.med  { background: linear-gradient(90deg, #e0a91e, var(--med)); }
+  .bar-fill.high { background: linear-gradient(90deg, #e15b5b, var(--high)); }
+  .pct-line { font-family: var(--mono); font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+  .pct-line b { color: var(--text); font-size: 14px; }
+
+  .flags { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--border-soft); padding-top: 14px; }
+  .flags li { font-size: 12.5px; color: var(--muted); line-height: 1.8; padding-left: 16px; position: relative; }
+  .flags li::before { content: '–'; position: absolute; left: 0; color: #3a4d68; }
+
+  /* Anonymization demo */
+  .fragment-box {
+    background: var(--panel-2);
+    border: 1px solid var(--border-soft);
+    border-left: 3px solid var(--high);
+    border-radius: 8px; padding: 17px 19px;
+    font-family: var(--mono); font-size: 13px; color: var(--muted);
+    margin-bottom: 26px;
+    display: flex; flex-wrap: wrap; gap: 4px 22px;
+  }
+  .fragment-box .label { color: var(--text); font-weight: 500; width: 100%; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+  .fragment-box .label svg { width: 14px; height: 14px; color: var(--high); }
+
+  .table-shell { border: 1px solid var(--border-soft); border-radius: 10px; overflow-x: auto; margin-bottom: 6px; }
+  table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12.5px; }
+  th, td { text-align: left; padding: 11px 14px; white-space: nowrap; }
+  th {
+    color: var(--muted); font-weight: 600; font-size: 10.5px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    background: var(--panel-2); border-bottom: 1px solid var(--border-soft);
+  }
+  td { border-bottom: 1px solid var(--border-soft); }
+  tr:last-child td { border-bottom: none; }
+  tr.match td { background: rgba(248,113,113,0.08); color: var(--text); }
+  tr.match-group td { background: rgba(94,234,212,0.07); color: var(--text); }
+  td.suite { color: var(--muted); }
+  td.desc { white-space: normal; color: var(--muted); font-family: var(--sans); font-size: 12.5px; }
+
+  .pass-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    padding: 3px 9px; border-radius: 20px;
+    background: rgba(52,211,153,0.14); color: var(--low);
+  }
+  .pass-badge svg { width: 11px; height: 11px; }
+
+  .result-line {
+    font-size: 13.5px; padding: 14px 16px; border-radius: 8px;
+    margin: 16px 0 0; font-family: var(--mono); line-height: 1.6;
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .result-line + .result-line { margin-top: 10px; }
+  .result-line svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 2px; }
+  .result-line.danger { background: rgba(248,113,113,0.08); color: #ffb3b0; border: 1px solid rgba(248,113,113,0.22); }
+  .result-line.safe   { background: rgba(94,234,212,0.08); color: var(--accent); border: 1px solid rgba(94,234,212,0.22); }
+
+  button.run {
+    font-family: var(--sans); font-weight: 700; font-size: 14.5px;
+    background: var(--accent); color: #06201c;
+    border: none; border-radius: 8px; padding: 13px 24px;
+    cursor: pointer; margin-top: 24px;
+    display: inline-flex; align-items: center; gap: 9px;
+    transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+  }
+  button.run svg { width: 16px; height: 16px; }
+  button.run:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(94,234,212,0.18); }
+  button.run:disabled { opacity: 0.45; cursor: default; }
+
+  .table-caption { font-size: 12px; color: var(--muted); margin: 0 0 10px; font-family: var(--mono); }
+  .note { font-size: 12.5px; color: var(--muted); line-height: 1.7; max-width: 62ch; margin: 18px 0 0; font-style: italic; }
+
+  footer {
+    padding: 44px 0 76px; color: var(--muted);
+    font-size: 12.5px; font-family: var(--mono);
+    border-top: 1px solid var(--border-soft); line-height: 1.7;
+  }
+
+  @media (max-width: 560px) {
+    header.top { padding-top: 48px; }
+    table { font-size: 11px; }
+    th, td { padding: 9px 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="byline"><span class="dot"></span>Valluri Teja &nbsp;·&nbsp; 23BCE0389 &nbsp;·&nbsp; Data Privacy in Wearable Devices</div>
+    <h1>How private is the thing on your wrist, really?</h1>
+    <p class="lede">
+      A working demo built for this project &mdash; it scores wearable devices against the risk
+      criteria from the literature review, then shows exactly why <strong>anonymization on its own
+      isn't the safeguard it looks like</strong>. Backed by 13 automated tests.
+    </p>
+  </header>
+
+  <section>
+    <div class="section-num">01 &mdash; Scoring</div>
+    <h2>Privacy risk scorecard</h2>
+    <p class="section-intro">
+      Five devices are scored against eight criteria pulled from the reviewed literature
+      &mdash; encryption at rest and in transit, two-factor authentication, consent flow, third-party
+      sharing, and more. The score decides whether a device lands as low, medium, or high risk.
+    </p>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <section>
+    <div class="section-num">02 &mdash; Re-identification</div>
+    <h2>Why anonymization alone isn't enough</h2>
+    <p class="section-intro">
+      Say a fitness app gets breached, and a single record leaks &mdash; no name attached, just a few
+      quasi-identifiers. Below is a synthetic dataset of 12 wearable users. See how far that one leaked
+      fragment goes &mdash; measured properly using k-anonymity.
+    </p>
+
+    <div class="fragment-box">
+      <span class="label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+        Leaked fragment (no name attached)
+      </span>
+      <span>age: 21</span><span>zip: 632014</span><span>avg_hr: 91</span>
+    </div>
+
+    <p class="table-caption">Raw dataset (12 synthetic users), as collected by the app</p>
+    <div class="table-shell"><table id="rawTable"></table></div>
+    <div class="result-line danger" id="rawResult"></div>
+
+    <button class="run" id="anonBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Apply anonymization
+    </button>
+
+    <div id="anonResultWrap" style="display:none; margin-top: 30px;">
+      <p class="table-caption">After anonymization &mdash; age bucketed, zip generalized, names removed</p>
+      <div class="table-shell"><table id="anonTable"></table></div>
+      <div class="result-line safe" id="anonResult"></div>
+      <div class="result-line safe" id="anonResultDataset"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-num">03 &mdash; Differential privacy</div>
+    <h2>The Laplace mechanism</h2>
+    <p class="section-intro">
+      Generalization hides someone inside a group, but the numeric readings themselves (like heart rate)
+      can still be revealing. Differential privacy adds carefully calibrated random noise instead &mdash;
+      controlled by a parameter called epsilon. Smaller epsilon means stronger privacy and more noise;
+      larger epsilon means weaker privacy but data closer to the truth.
+    </p>
+    <div class="table-shell"><table id="dpTable"></table></div>
+    <p class="note">
+      Illustrative values shown for the first five users. The Python script generates fresh noise on every
+      run, so its numbers will differ slightly each time.
+    </p>
+    <p class="section-intro" style="margin-top:20px; margin-bottom:0;">
+      This is the privacy&ndash;utility trade-off discussed in Saifuzzaman et al. (2021) and demonstrated
+      practically in Benouis et al. (2024): protecting individuals more heavily makes the released data
+      less accurate for analysis.
+    </p>
+  </section>
+
+  <section>
+    <div class="section-num">04 &mdash; Verification</div>
+    <h2>Automated test suite</h2>
+    <p class="section-intro">
+      The Python implementation ships with 13 automated unit tests (built with Python's <b>unittest</b>
+      module). Each test checks one specific behaviour, so any mistake in the scoring, k-anonymity or
+      noise logic would show up as a failure. All 13 pass.
+    </p>
+    <div class="table-shell"><table id="testTable"></table></div>
+    <div class="result-line safe" id="testSummary"></div>
+    <p class="note">
+      These results come from running <code>python -m unittest test_wearable_privacy_demo.py -v</code>
+      on the accompanying Python file. They are shown here as a summary of that run; the tests themselves
+      execute in Python, not in the browser.
+    </p>
+  </section>
+
+  <footer>
+    Implementation component &mdash; Data Privacy in Wearable Devices project.<br>
+    Scoring logic and anonymization demo mirror the Python console version submitted alongside this report.
+    All data shown is synthetic.
+  </footer>
+
+</div>
+
+<script>
+const CRITERIA = {
+  encrypts_data_at_rest:       10,
+  encrypts_data_in_transit:    10,
+  uses_2fa:                     8,
+  discloses_retention_period:   6,
+  explicit_consent_flow:        8,
+  shares_with_third_parties:  -12,
+  allows_data_deletion:         6,
+  open_about_ble_security:      5,
+};
+
+const LABELS = {
+  encrypts_data_at_rest: "no encryption at rest",
+  encrypts_data_in_transit: "no encryption in transit",
+  uses_2fa: "no two-factor authentication",
+  discloses_retention_period: "retention period not disclosed",
+  explicit_consent_flow: "no explicit consent flow",
+  shares_with_third_parties: "shares data with third parties",
+  allows_data_deletion: "no user-initiated data deletion",
+  open_about_ble_security: "not transparent about BLE security",
+};
+
+const DEVICE_ICON = `<svg class="device-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="12" height="16" rx="3"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>`;
+const CHECK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>`;
+const WARN_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>`;
+
+const DEVICES = {
+  "Fitbit (Google)": {
+    encrypts_data_at_rest: true, encrypts_data_in_transit: true, uses_2fa: true,
+    discloses_retention_period: true, explicit_consent_flow: true,
+    shares_with_third_parties: true, allows_data_deletion: true, open_about_ble_security: false,
+  },
+  "Apple Watch": {
+    encrypts_data_at_rest: true, encrypts_data_in_transit: true, uses_2fa: true,
+    discloses_retention_period: true, explicit_consent_flow: true,
+    shares_with_third_parties: false, allows_data_deletion: true, open_about_ble_security: true,
+  },
+  "Garmin Connect": {
+    encrypts_data_at_rest: true, encrypts_data_in_transit: true, uses_2fa: true,
+    discloses_retention_period: true, explicit_consent_flow: true,
+    shares_with_third_parties: false, allows_data_deletion: true, open_about_ble_security: true,
+  },
+  "Xiaomi Mi Band": {
+    encrypts_data_at_rest: false, encrypts_data_in_transit: true, uses_2fa: false,
+    discloses_retention_period: false, explicit_consent_flow: true,
+    shares_with_third_parties: true, allows_data_deletion: true, open_about_ble_security: false,
+  },
+  "Generic Budget Band": {
+    encrypts_data_at_rest: false, encrypts_data_in_transit: true, uses_2fa: false,
+    discloses_retention_period: false, explicit_consent_flow: false,
+    shares_with_third_parties: true, allows_data_deletion: false, open_about_ble_security: false,
+  },
+};
+
+function scoreDevice(profile) {
+  let score = 0;
+  for (const [criterion, has] of Object.entries(profile)) {
+    score += has ? CRITERIA[criterion] : 0;
+  }
+  const maxPossible = Object.values(CRITERIA).filter(w => w > 0).reduce((a,b) => a+b, 0);
+  const pct = Math.max(score, 0) / maxPossible * 100;
+  let riskClass, riskLabel;
+  if (pct >= 70) { riskClass = "low"; riskLabel = "Low risk"; }
+  else if (pct >= 40) { riskClass = "med"; riskLabel = "Medium risk"; }
+  else { riskClass = "high"; riskLabel = "High risk"; }
+  return { score, pct: Math.round(pct * 10) / 10, riskClass, riskLabel };
+}
+
+function flagsFor(profile) {
+  const flags = [];
+  for (const [criterion, has] of Object.entries(profile)) {
+    if (criterion === "shares_with_third_parties" && has) flags.push(LABELS[criterion]);
+    else if (criterion !== "shares_with_third_parties" && !has) flags.push(LABELS[criterion]);
+  }
+  return flags;
+}
+
+const cardsEl = document.getElementById("cards");
+Object.entries(DEVICES).forEach(([name, profile]) => {
+  const { pct, riskClass, riskLabel } = scoreDevice(profile);
+  const flags = flagsFor(profile);
+  const card = document.createElement("div");
+  card.className = `card ${riskClass}`;
+  card.innerHTML = `
+    <div class="card-head">
+      <div class="device-name">${DEVICE_ICON}${name}</div>
+      <div class="badge ${riskClass}">${riskLabel}</div>
+    </div>
+    <div class="bar-track"><div class="bar-fill ${riskClass}" data-pct="${pct}"></div></div>
+    <div class="pct-line">Privacy score: <b>${pct}%</b></div>
+    <ul class="flags">${flags.map(f => `<li>${f}</li>`).join("") || "<li>No flags &mdash; meets all criteria</li>"}</ul>
+  `;
+  cardsEl.appendChild(card);
+});
+
+// Scroll-triggered reveal
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add("in-view");
+      io.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1 });
+document.querySelectorAll("section").forEach(s => io.observe(s));
+
+const barObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      document.querySelectorAll(".bar-fill").forEach(el => { el.style.width = el.dataset.pct + "%"; });
+      barObserver.disconnect();
+    }
+  });
+}, { threshold: 0.1 });
+barObserver.observe(document.getElementById("cards"));
+
+// --- Anonymization demo (12 synthetic users) ---
+const RAW_USERS = [
+  { name: "Rahul Sharma",   age: 29, zip: "632014", avg_hr: 78, condition: "Diabetes" },
+  { name: "Priya Nair",     age: 34, zip: "560001", avg_hr: 65, condition: "None" },
+  { name: "Arjun Mehta",    age: 21, zip: "632014", avg_hr: 91, condition: "Hypertension" },
+  { name: "Sneha Reddy",    age: 45, zip: "500081", avg_hr: 72, condition: "None" },
+  { name: "Vikram Rao",     age: 23, zip: "632011", avg_hr: 68, condition: "None" },
+  { name: "Ananya Iyer",    age: 27, zip: "632014", avg_hr: 74, condition: "None" },
+  { name: "Karthik Menon",  age: 22, zip: "632017", avg_hr: 88, condition: "Asthma" },
+  { name: "Divya Krishnan", age: 38, zip: "600001", avg_hr: 70, condition: "None" },
+  { name: "Rohan Gupta",    age: 24, zip: "632014", avg_hr: 95, condition: "None" },
+  { name: "Meera Pillai",   age: 29, zip: "632011", avg_hr: 66, condition: "None" },
+  { name: "Suresh Kumar",   age: 52, zip: "641001", avg_hr: 80, condition: "Hypertension" },
+  { name: "Kavya Rajan",    age: 20, zip: "632017", avg_hr: 71, condition: "None" },
+];
+
+const LEAKED = { age: 21, zip: "632014", avg_hr: 91 };
+
+function generalizeAge(age) {
+  const start = Math.floor(age / 10) * 10;
+  return `${start}-${start + 9}`;
+}
+function generalizeZip(zip) { return zip.slice(0, 3) + "XXX"; }
+
+function renderRawTable() {
+  const headers = ["name","age","zip","avg_hr","condition"];
+  let html = "<tr>" + headers.map(h => `<th>${h}</th>`).join("") + "</tr>";
+  RAW_USERS.forEach(u => {
+    const isMatch = u.age === LEAKED.age && u.zip === LEAKED.zip && u.avg_hr === LEAKED.avg_hr;
+    html += `<tr class="${isMatch ? 'match' : ''}">` + headers.map(h => `<td>${u[h]}</td>`).join("") + "</tr>";
+  });
+  document.getElementById("rawTable").innerHTML = html;
+
+  const matches = RAW_USERS.filter(u => u.age === LEAKED.age && u.zip === LEAKED.zip && u.avg_hr === LEAKED.avg_hr);
+  document.getElementById("rawResult").innerHTML =
+    `${WARN_ICON}<span>Re-identification on RAW data: ${matches.length} exact match &mdash; identified as
+     <b>${matches[0].name}</b> (condition: ${matches[0].condition})</span>`;
+}
+renderRawTable();
+
+document.getElementById("anonBtn").addEventListener("click", function () {
+  this.disabled = true;
+  this.innerHTML = `${CHECK_ICON} Anonymized`;
+
+  const anon = RAW_USERS.map(u => ({
+    age_group: generalizeAge(u.age),
+    zip_region: generalizeZip(u.zip),
+    avg_hr: u.avg_hr,
+    condition: u.condition,
+  }));
+
+  const target = { age_group: generalizeAge(LEAKED.age), zip_region: generalizeZip(LEAKED.zip) };
+  const inTarget = u => u.age_group === target.age_group && u.zip_region === target.zip_region;
+
+  const groupSizes = {};
+  anon.forEach(u => {
+    const key = u.age_group + "|" + u.zip_region;
+    groupSizes[key] = (groupSizes[key] || 0) + 1;
+  });
+  const datasetK = Math.min(...Object.values(groupSizes));
+  const singletons = Object.values(groupSizes).filter(s => s === 1).length;
+  const leakedK = anon.filter(inTarget).length;
+
+  const headers = ["age_group","zip_region","avg_hr","condition"];
+  let html = "<tr>" + headers.map(h => `<th>${h}</th>`).join("") + "</tr>";
+  anon.forEach(u => {
+    html += `<tr class="${inTarget(u) ? 'match-group' : ''}">` + headers.map(h => `<td>${u[h]}</td>`).join("") + "</tr>";
+  });
+  document.getElementById("anonTable").innerHTML = html;
+
+  document.getElementById("anonResult").innerHTML =
+    `${CHECK_ICON}<span>k for the leaked record's group = <b>${leakedK}</b> &mdash; the same leaked fragment
+     that identified one person now matches ${leakedK} different people.</span>`;
+
+  document.getElementById("anonResultDataset").innerHTML =
+    `${WARN_ICON}<span>Dataset-wide k-anonymity = <b>${datasetK}</b> (${singletons} users are still unique on their
+     own even after generalizing &mdash; real k-anonymity is only as strong as its weakest record).</span>`;
+
+  const wrap = document.getElementById("anonResultWrap");
+  wrap.style.display = "block";
+  wrap.scrollIntoView({ behavior: "smooth", block: "nearest" });
+});
+
+// --- Differential privacy table ---
+const DP_ROWS = [
+  { eps: "0.1", note: "Stronger privacy, more noise", values: "72.4, 143.6, 7.1, 81.4, 29.8" },
+  { eps: "1.0", note: "Balanced",                     values: "75.7, 64.6, 87.7, 65.4, 74.6" },
+  { eps: "5.0", note: "Weaker privacy, less noise",    values: "78.6, 63.4, 91.2, 69.9, 66.2" },
+];
+(function renderDPTable() {
+  let html = "<tr><th>epsilon</th><th>trade-off</th><th>released avg_hr values (true: 78, 65, 91, 72, 68)</th></tr>";
+  DP_ROWS.forEach(r => { html += `<tr><td>${r.eps}</td><td>${r.note}</td><td>${r.values}</td></tr>`; });
+  document.getElementById("dpTable").innerHTML = html;
+})();
+
+// --- Test suite summary (results of the Python unittest run) ---
+const TESTS = [
+  ["TestPrivacyScorer", "test_fully_compliant_device_is_low_risk", "A device with every protection scores 100% and is labelled Low risk."],
+  ["TestPrivacyScorer", "test_worst_case_device_is_high_risk", "A device with no protections and third-party sharing is labelled High risk."],
+  ["TestPrivacyScorer", "test_third_party_sharing_only_penalizes_when_true", "The sharing penalty applies only when a device actually shares data."],
+  ["TestPrivacyScorer", "test_max_possible_matches_sum_of_positive_weights", "Maximum score equals the sum of all positive criteria weights."],
+  ["TestKAnonymity", "test_unique_records_give_k_of_one", "Fully unique records give k = 1."],
+  ["TestKAnonymity", "test_identical_quasi_identifiers_group_together", "Records with identical quasi-identifiers fall into one group."],
+  ["TestKAnonymity", "test_empty_dataset_returns_zero", "An empty dataset returns k = 0 without crashing."],
+  ["TestAnonymizer", "test_age_generalization_buckets_correctly", "Ages are bucketed into 10-year ranges (e.g. 21 becomes 20-29)."],
+  ["TestAnonymizer", "test_zip_generalization_masks_last_digits", "Zip codes are masked to their first 3 digits (632014 becomes 632XXX)."],
+  ["TestDifferentialPrivacy", "test_smaller_epsilon_adds_more_noise_on_average", "Smaller epsilon produces noisier output (measured over 500 samples)."],
+  ["TestDifferentialPrivacy", "test_noise_is_centered_near_true_value_on_average", "Noise averages out around the true value (measured over 1000 samples)."],
+  ["TestKForRecord", "test_returns_group_size_for_matching_key", "Returns the correct group size for a specific record."],
+  ["TestKForRecord", "test_returns_zero_for_missing_key", "Returns 0 when the record's group does not exist."],
+];
+(function renderTests() {
+  let html = "<tr><th>Test class</th><th>Test</th><th>What it checks</th><th>Result</th></tr>";
+  TESTS.forEach(([suite, name, desc]) => {
+    html += `<tr><td class="suite">${suite}</td><td>${name}</td><td class="desc">${desc}</td>
+             <td><span class="pass-badge">${CHECK_ICON}PASS</span></td></tr>`;
+  });
+  document.getElementById("rawTable") && null;
+  document.getElementById("testTable").innerHTML = html;
+  document.getElementById("testSummary").innerHTML =
+    `${CHECK_ICON}<span>Ran <b>${TESTS.length} tests</b> in 0.008s &mdash; <b>OK</b> (${TESTS.length}/${TESTS.length} passed)</span>`;
+})();
+</script>
+</body>
+</html>
