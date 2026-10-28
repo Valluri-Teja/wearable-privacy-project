@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NHANES Wearable Data</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;1,500&family=Manrope:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0d141f;
+    --panel: #151f2e;
+    --panel-2: #1b2839;
+    --border: #263a53;
+    --border-soft: #1f2e42;
+    --text: #eaf0f7;
+    --muted: #8fa1b8;
+    --accent: #5eead4;
+    --accent-soft: rgba(94,234,212,0.10);
+    --low: #34d399;
+    --med: #fbbf24;
+    --high: #f87171;
+    --serif: 'Fraunces', Georgia, 'Times New Roman', serif;
+    --sans: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  body { min-height: 100vh; overflow-x: hidden; line-height: 1.5; }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 0 24px 40px; position: relative; }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--panel-2); border: 1px solid var(--border-soft); padding: 1px 6px; border-radius: 4px; color: var(--accent); }
+  a { color: var(--accent); }
+
+  /* ---------- Hero ---------- */
+  header.top { padding: 64px 0 12px; position: relative; }
+  header.top::before {
+    content: ''; position: absolute; top: -140px; left: -220px; width: 520px; height: 520px;
+    background: radial-gradient(circle, rgba(94,234,212,0.16) 0%, rgba(94,234,212,0) 70%);
+    pointer-events: none; z-index: 0;
+  }
+  .topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 26px; position: relative; z-index: 1; }
+  .byline {
+    display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12.5px;
+    color: var(--muted); letter-spacing: 0.02em; padding: 6px 12px 6px 8px;
+    background: var(--panel); border: 1px solid var(--border-soft); border-radius: 20px;
+  }
+  .byline .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    font-family: var(--sans); font-weight: 700; font-size: 13px; color: var(--text); background: var(--panel);
+    border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; text-decoration: none; cursor: pointer;
+    transition: transform 0.15s ease, filter 0.15s ease, border-color 0.15s ease;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  h1 {
+    font-family: var(--serif); font-weight: 600; font-size: clamp(32px, 5vw, 50px); line-height: 1.1;
+    margin: 0 0 18px; max-width: 16ch; position: relative; z-index: 1;
+  }
+  .lede { font-size: 17px; line-height: 1.65; color: var(--muted); max-width: 60ch; margin: 0 0 26px; position: relative; z-index: 1; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; position: relative; z-index: 1; }
+  .chip { font-family: var(--mono); font-size: 12px; color: var(--muted); background: var(--panel); border: 1px solid var(--border-soft); border-radius: 20px; padding: 5px 12px; }
+
+  /* ---------- Sections ---------- */
+  section {
+    padding: 60px 0; border-top: 1px solid var(--border-soft);
+    opacity: 0; transform: translateY(18px); transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  section.in-view { opacity: 1; transform: translateY(0); }
+  main > section:first-of-type { border-top: none; }
+  .eyebrow { font-family: var(--mono); font-size: 13px; color: var(--accent); letter-spacing: 0.05em; margin-bottom: 10px; }
+  h2 { font-family: var(--serif); font-style: italic; font-weight: 500; font-size: 27px; margin: 0 0 12px; }
+  .intro { color: var(--muted); font-size: 15px; line-height: 1.7; max-width: 62ch; margin: 0 0 30px; }
+  .note { font-family: var(--mono); font-size: 12px; color: var(--muted); max-width: 78ch; margin: 14px 0 0; line-height: 1.7; }
+  .panel { background: var(--panel); border: 1px solid var(--border-soft); border-radius: 14px; padding: 22px; }
+  .panel p { margin: 0 0 8px; }
+  .panel p:last-child { margin-bottom: 0; }
+
+  /* ---------- Tiles ---------- */
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .tile { background: var(--panel); border: 1px solid var(--border-soft); border-radius: 14px; padding: 18px 20px; transition: border-color 0.25s ease, transform 0.25s ease; }
+  .tile:hover { border-color: var(--border); transform: translateY(-2px); }
+  .tile .label { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .tile .value { font-family: var(--serif); font-size: 30px; font-weight: 600; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+  .tile .sub { font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+
+  /* ---------- Bars ---------- */
+  .bars { display: grid; gap: 10px; }
+  .bar-row { display: grid; grid-template-columns: 80px 1fr 60px; gap: 12px; align-items: center; font-family: var(--mono); font-size: 12.5px; }
+  .bar-track { height: 8px; background: var(--panel-2); border-radius: 5px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 5px; background: linear-gradient(90deg, #2dc4b0, var(--accent)); }
+  .bar-row .num { color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* ---------- Tables ---------- */
+  .table-shell { border: 1px solid var(--border-soft); border-radius: 10px; overflow-x: auto; margin-bottom: 20px; background: var(--panel); }
+  table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12.5px; }
+  th, td { text-align: left; padding: 11px 14px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  th { color: var(--muted); font-weight: 600; font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; background: var(--panel-2); border-bottom: 1px solid var(--border-soft); }
+  td { border-bottom: 1px solid var(--border-soft); }
+  tr:last-child td { border-bottom: none; }
+  tr.hl td { background: rgba(94,234,212,0.07); color: var(--text); }
+  td.num, th.num { text-align: right; }
+
+  /* ---------- Attack ---------- */
+  .hero { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 20px; padding: 24px 26px; background: var(--panel); border: 1px solid var(--border-soft); border-radius: 14px; margin-bottom: 18px; }
+  .hero .big { font-family: var(--serif); font-size: 60px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; color: var(--high); }
+  .hero .txt { font-size: 15.5px; line-height: 1.65; color: var(--muted); max-width: 54ch; }
+  .hero .txt b { color: var(--text); }
+  .meter { margin: 0 0 16px; }
+  .meter .m-head { display: flex; justify-content: space-between; gap: 12px; font-size: 13.5px; margin-bottom: 7px; }
+  .meter .m-head span { color: var(--muted); }
+  .meter .m-head b { font-family: var(--mono); font-weight: 500; font-variant-numeric: tabular-nums; }
+  .m-track { height: 8px; border-radius: 5px; overflow: hidden; background: var(--panel-2); }
+  .m-fill { height: 100%; border-radius: 5px; width: 0; transition: width 1s cubic-bezier(.22,.9,.3,1); }
+  .m-fill.teal { background: linear-gradient(90deg, #2dc4b0, var(--accent)); }
+  .m-fill.red  { background: linear-gradient(90deg, #e15b5b, var(--high)); }
+
+  /* ---------- Result lines ---------- */
+  .result {
+    display: flex; gap: 10px; align-items: flex-start; padding: 14px 16px; border-radius: 8px; margin-top: 16px;
+    font-family: var(--mono); font-size: 13px; line-height: 1.7;
+  }
+  .result svg { flex-shrink: 0; width: 15px; height: 15px; margin-top: 3px; }
+  .result b { font-weight: 700; color: var(--text); }
+  .result.good { background: rgba(94,234,212,0.08); color: var(--accent); border: 1px solid rgba(94,234,212,0.22); }
+  .result.warn { background: rgba(251,191,36,0.08); color: #fde68a; border: 1px solid rgba(251,191,36,0.25); }
+
+  .limits { margin: 0; padding-left: 20px; color: var(--muted); font-size: 15px; line-height: 1.7; max-width: 70ch; }
+  .limits li { margin-bottom: 10px; }
+  .limits b { color: var(--text); }
+
+  .banner { display: none; background: var(--panel); border: 1px solid var(--high); border-radius: 14px; padding: 18px 20px; margin: 30px 0; }
+  .banner h2 { font-size: 20px; margin: 0 0 6px; }
+  footer { padding: 40px 0 60px; color: var(--muted); font-family: var(--mono); font-size: 12px; line-height: 1.7; border-top: 1px solid var(--border-soft); }
+
+  @media (max-width: 680px) {
+    header.top { padding-top: 44px; }
+    .hero .big { font-size: 46px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    section { opacity: 1; transform: none; transition: none; }
+    .m-fill { transition: none; }
+    .tile, .btn { transition: none; }
+  }
+</style>
+<noscript><style>section { opacity: 1; transform: none; }</style></noscript>
+
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="topbar">
+      <div class="byline"><span class="dot"></span>Valluri Teja &nbsp;&middot;&nbsp; 23BCE0389 &nbsp;&middot;&nbsp; Data Privacy in Wearable Devices</div>
+      <div class="actions">
+        <a class="btn" href="wearable_dashboard.html">&larr; Main dashboard</a>
+        <a class="btn" href="real_data_dashboard.html">Fitbit heart-rate page</a>
+      </div>
+    </div>
+    <h1>A large real dataset: thousands of people</h1>
+    <p class="lede">
+      This page repeats the privacy tests on public data from the US CDC's NHANES survey: thousands of real people who wore a
+      wrist accelerometer, with their real age, gender, race, education and income.
+    </p>
+    <div class="chips" id="chips"></div>
+  </header>
+
+  <div class="banner" id="missing">
+    <h2>No NHANES results yet</h2>
+    <p style="margin:0;color:var(--muted)">Run <code>python nhanes_analysis.py</code> in this folder first. It creates <code>nhanes_results.js</code>, which this page reads.</p>
+  </div>
+
+  <main id="app">
+
+    <section>
+      <div class="eyebrow">01 &mdash; The source</div>
+      <h2>Public wearable data from a national health survey</h2>
+      <p class="intro">
+        NHANES is run by the US CDC. In 2013&ndash;2014, participants wore a research accelerometer on the wrist for up to seven days.
+        The activity summaries and the demographic details of the same people are published openly.
+      </p>
+      <div class="panel" id="source"></div>
+    </section>
+
+    <section>
+      <div class="eyebrow">02 &mdash; The data</div>
+      <h2>What we are working with</h2>
+      <p class="intro">
+        Activity is measured in MIMS units, a standard measure of wrist movement. A day counts only if the device was worn at least
+        <span id="wearHours"></span> hours, and a person is used only if they have enough valid days.
+      </p>
+      <div class="tiles" id="tiles"></div>
+      <p class="note" id="dataNote"></p>
+    </section>
+
+    <section>
+      <div class="eyebrow">03 &mdash; k-anonymity</div>
+      <h2>How identifiable are real people from their demographics?</h2>
+      <p class="intro">
+        An attacker who knows someone's age, gender, race, education and income can look for the one matching row. We make the data
+        less detailed in five steps and count how many people end up alone or in a group smaller than <span id="kVal"></span>.
+      </p>
+      <div class="table-shell"><table id="kTable"></table></div>
+      <div class="result good" id="kInsight"></div>
+    </section>
+
+    <section>
+      <div class="eyebrow">04 &mdash; The attack</div>
+      <h2>Can an activity pattern find the same person again?</h2>
+      <p class="intro">
+        Each person's valid days are split into two halves. The attacker holds the first-half summaries of everyone, with no names.
+        For a person's second-half summary, they look for the most similar first-half summary. Then we check whether they found the right person.
+        We test two attackers: one who uses activity only, and one who also knows the person's age band, gender and race.
+      </p>
+      <div id="attackBox"></div>
+    </section>
+
+    <section>
+      <div class="eyebrow">05 &mdash; Differential privacy</div>
+      <h2>What noise costs with a big crowd</h2>
+      <p class="intro">
+        We release the average daily activity with random noise (Laplace noise, controlled by epsilon), protecting one whole person.
+        The same promise costs far less accuracy when many people are in the data.
+      </p>
+      <div class="table-shell"><table id="dpTable"></table></div>
+      <div class="table-shell"><table id="crowdTable"></table></div>
+      <div class="result good" id="dpInsight"></div>
+      <p class="note" id="dpNote"></p>
+    </section>
+
+    <section>
+      <div class="eyebrow">06 &mdash; Limits</div>
+      <h2>What these results do and don't show</h2>
+      <ul class="limits" id="limits"></ul>
+    </section>
+
+  </main>
+
+  <footer id="foot"></footer>
+</div>
+
+<script src="nhanes_results.js"></script>
+<script>
+const R = window.NHANES;
+const $ = id => document.getElementById(id);
+const fmt = n => Number(n).toLocaleString('en-IN');
+const ICON = {
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  warn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>',
+};
+
+if (!R) {
+  $('missing').style.display = 'block';
+  $('app').style.display = 'none';
+} else {
+  render();
+  grow();
+}
+revealOnScroll();
+
+function revealOnScroll() {
+  const sections = document.querySelectorAll('section');
+  if (!('IntersectionObserver' in window)) {
+    sections.forEach(s => s.classList.add('in-view'));
+    return;
+  }
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('in-view'); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.06 });
+  sections.forEach(s => io.observe(s));
+}
+
+function grow() {
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.querySelectorAll('.m-fill[data-w]').forEach(el => { el.style.width = el.dataset.w + '%'; });
+  }));
+}
+
+function tile(label, value, sub) {
+  return `<div class="tile"><div class="label">${label}</div><div class="value">${value}</div>${sub ? `<div class="sub">${sub}</div>` : ''}</div>`;
+}
+function meter(label, value, cls, shown) {
+  const w = Math.min(100, Math.max(value, 0.6));
+  return `<div class="meter"><div class="m-head"><span>${label}</span><b>${shown !== undefined ? shown : value + '%'}</b></div>
+    <div class="m-track"><div class="m-fill ${cls}" data-w="${w}"></div></div></div>`;
+}
+
+function render() {
+  const S = R.summary, K = R.kanon, A = R.attack, D = R.dp, src = R.source;
+  const AO = A.activity_only, WD = A.with_demographics;
+
+  $('chips').innerHTML = [
+    `${fmt(S.people)} real people`,
+    `${fmt(S.valid_days)} valid wear days`,
+    'age, gender, race, education, income',
+    'US CDC public data',
+  ].map(t => `<span class="chip">${t}</span>`).join('');
+
+  /* 01 source */
+  $('source').innerHTML = `
+    <p><b>${src.title}</b></p>
+    <p>${src.authors}. <a href="${src.url}" target="_blank" rel="noopener">${src.url}</a></p>
+    <p style="color:var(--muted)">Licence: ${src.license}.</p>`;
+
+  /* 02 data */
+  $('wearHours').textContent = Math.round(S.min_wear_minutes / 60);
+  $('tiles').innerHTML =
+    tile('People used', fmt(S.people), `of ${fmt(S.demo_people)} in the survey file`) +
+    tile('Valid wear days', fmt(S.valid_days), `${S.days_per_person} per person`) +
+    tile('Age range', `${S.age_min}&ndash;${S.age_max}`, `average ${S.age_mean}`) +
+    tile('Male', `${S.pct_male}%`, 'rest female') +
+    tile('Daily activity', fmt(S.mean_daily_mims), 'average MIMS per day');
+  $('dataNote').textContent =
+    `${fmt(S.device_people)} people have device data. A person is used only with at least ${S.min_valid_days} valid days. ` +
+    `NHANES records ages of 80 and over as 80.`;
+
+  /* 03 k-anonymity */
+  $('kVal').textContent = K.k;
+  $('kTable').innerHTML =
+    '<tr><th>Level</th><th>What is kept</th><th class="num">Groups</th><th class="num">Unique</th><th class="num">In groups of ' + K.k + '+</th><th class="num">Would be removed</th><th class="num">Avg. group</th></tr>' +
+    K.rows.map((r, i) => `<tr class="${i === K.chosen ? 'hl' : ''}"><td>${r.level} ${r.name}</td><td>${r.description}</td>
+      <td class="num">${fmt(r.groups)}</td><td class="num">${r.pct_unique}%</td><td class="num">${r.pct_in_k_groups}%</td>
+      <td class="num">${r.pct_suppressed}%</td><td class="num">${r.avg_group}</td></tr>`).join('');
+  const raw = K.rows[0], ch = K.rows[K.chosen];
+  $('kInsight').innerHTML = `${ICON.check}<span>With every detail kept, <b>${raw.pct_unique}%</b> of real people are the only one with their combination, and
+    <b>${raw.pct_suppressed}%</b> sit in a group smaller than ${K.k}. The lowest level that removes at most ${K.max_suppress_pct}% of people is
+    <b>${ch.level} ${ch.name}</b>: ${fmt(K.kept_after)} people kept, every one in a group of ${K.k} or more.</span>`;
+
+  /* 04 attack */
+  const strong = AO.pct_top1 >= 10 * AO.pct_chance_top1;
+  $('attackBox').innerHTML = `
+    <div class="hero">
+      <div class="big">${AO.pct_top1}%</div>
+      <div class="txt">of <b>${fmt(A.people_attacked)}</b> people were found again among <b>${fmt(A.candidates)}</b> candidates using only their activity pattern.
+        Random guessing would get <b>${AO.pct_chance_top1}%</b>, so the attack is about <b>${fmt(AO.times_better_than_chance)} times</b> better than chance.</div>
+    </div>
+    <div class="panel">
+      ${meter('Activity only: correct person ranked first', AO.pct_top1, 'red')}
+      ${meter('Activity only: correct person in the top 10', AO.pct_top10, 'red')}
+      ${meter(`Activity only: correct person in the closest ${AO.top1pct_cut} (top 1%)`, AO.pct_top1pct, 'red')}
+      ${meter(`Activity + age band, gender, race: ranked first (about ${WD.avg_pool} people share those traits)`, WD.pct_top1, 'red')}
+      ${meter('Random guessing among all candidates', AO.pct_chance_top1, 'teal', AO.pct_chance_top1 + '%')}
+    </div>
+    <div class="result ${strong ? 'warn' : 'good'}">${strong ? ICON.warn : ICON.check}<span>${strong
+      ? 'An activity pattern is far from random: it points to the right person much more often than chance, even with no names. Combined with a few demographic facts, it narrows the search a lot.'
+      : 'In this run the activity pattern was only a little better than chance. How identifiable it is depends on how long people were recorded and which details the attacker also knows.'}</span></div>
+    <p class="note">Each person's profile has four daily averages: activity, wake-wear minutes, sleep-wear minutes and non-wear minutes.
+      This is a simple matching method; a smarter attacker could do better.</p>`;
+
+  /* 05 differential privacy */
+  $('dpTable').innerHTML =
+    '<tr><th class="num">Epsilon</th><th>Privacy</th><th class="num">Error (MIMS)</th><th class="num">Error as % of the average</th></tr>' +
+    D.rows.map(r => `<tr class="${r.epsilon === 1 ? 'hl' : ''}"><td class="num">${r.epsilon}</td>
+      <td>${r.epsilon <= 0.5 ? 'Strong' : r.epsilon <= 2 ? 'Balanced' : 'Weak'}</td>
+      <td class="num">${r.error}</td><td class="num">${r.error_pct}%</td></tr>`).join('');
+  $('crowdTable').innerHTML =
+    '<tr><th class="num">People in the data (epsilon = 1)</th><th class="num">Error (MIMS)</th><th class="num">Error as % of the average</th></tr>' +
+    D.crowd.map(c => `<tr><td class="num">${fmt(c.people)}</td><td class="num">${fmt(c.error)}</td><td class="num">${c.error_pct}%</td></tr>`).join('');
+  const small = D.crowd[0], big = D.crowd[D.crowd.length - 1];
+  $('dpInsight').innerHTML = `${ICON.check}<span>With <b>${fmt(big.people)}</b> people, hiding one whole person at epsilon 1 costs only <b>${big.error_pct}%</b> of the average.
+    With just <b>${small.people}</b> people the same promise costs <b>${small.error_pct}%</b>. Noise-based privacy works when the crowd is big, which is exactly what the 15-person Fitbit data could not show.</span>`;
+  $('dpNote').textContent = `True average: ${fmt(D.true_mean)} MIMS per day (average of per-person averages). Values were limited to ${fmt(D.bounds[0])}-${fmt(D.bounds[1])}. ` +
+    `Errors are averages over 500 repeated releases (fixed seed). Noise is roughly the range divided by (number of people x epsilon).`;
+
+  /* 06 limits */
+  $('limits').innerHTML = [
+    '<b>Not heart rate.</b> NHANES records wrist movement, not heart rate, so the attack uses activity patterns. The heart-rate tests stay on the Fitbit page.',
+    '<b>Already de-identified.</b> NHANES is a public file made safe for release, so a low risk here does not mean low risk for company data that keeps richer details.',
+    '<b>Simple attack and a research device.</b> The matching method is basic, and the wrist device is a research monitor, not a commercial smartwatch.',
+    '<b>Known Ids.</b> The same survey number appears in both halves, which lets us check the attack was right. A real attacker would not have that.',
+    '<b>2013&ndash;2014 only.</b> This is one survey cycle in one country, so the figures describe this dataset, not wearable users everywhere.',
+  ].map(t => `<li>${t}</li>`).join('');
+
+  $('foot').innerHTML = `Data: ${src.authors}. ${src.title}. <a href="${src.url}" target="_blank" rel="noopener">${src.url}</a>.<br>
+    Numbers come from <code>nhanes_results.js</code>, written by <code>nhanes_analysis.py</code>.`;
+}
+</script>
+</body>
+</html>
